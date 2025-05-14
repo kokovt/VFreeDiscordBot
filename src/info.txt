@@ -8,3 +8,4 @@ For the website the DB needs:
 6. Character art -> Array<string>
 7. Model image -> Array<string>
 8. Schedule -> Array<Date Information>
+9. Discord image -> string
