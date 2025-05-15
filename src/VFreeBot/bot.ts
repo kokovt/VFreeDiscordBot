@@ -8,7 +8,6 @@
 // #############
 import { ActivityType, Client, Message, CommandInteraction, GatewayIntentBits, AutocompleteInteraction, MessageFlags } from "discord.js";
 import { glob } from "glob";
-
 // ###############
 // ## CLASS DEF ##
 // ###############
