@@ -1,65 +1,13 @@
 import { EmbedBuilder, EmbedField } from "discord.js";
 import { commandBuilder, commandOptionTypes, optionBuilder } from "../bot";
 
-const HOURS_IN_MS = 3_600_000;
-
-const TALENT_DATA: {
-  [id: string]: {
-    streamer_name: string,
-    translation?: string,
-    header_text?: string,
-    description: string,
-    links?: Array<{
-      name: string,
-      link: string
-    }>,
-    model_images: Array<string>,
-    schedule?: Array<{
-      day: Date,
-      length: number,
-      reoccuring: boolean,
-    }>,
-    discord_image_index: number
-  }
-} = {
-  kokofee_: {
-    streamer_name: "kokofee_",
-    translation: "ここふぇえ",
-    header_text: "The coffee brewing trio",
-    description: "Hello, we are Kokofee!\nKokofee is the collaboration VTuber channel between our three talents, Koko, Toffee, and Tango!\nWe are a trio that just likes hanging out, and doing stupid things in video games!\nIf we are ever streaming, feel free to join!",
-    links: [{
-      name: "youtube",
-      link: "https://twitch.tv/kokofee_"
-    }, {
-      name: "twitch",
-      link: "https://www.youtube.com/@kokofeetv"
-    }],
-    model_images: ["https://cdn.discordapp.com/attachments/1369568824533323807/1369954553071669319/Screenshot_2025-05-08_022939.png?ex=6824fd59&is=6823abd9&hm=71e630d852b2ec9866d32e64108238497f3f6b1a4c26111605f70e19215be269&"],
-    schedule: [
-      {
-        day: new Date(2025, 4, 14, 10, 0, 0),
-        length: 3 * HOURS_IN_MS, // 3 hours,
-        reoccuring: true
-      }, {
-        day: new Date(2025, 4, 17),
-        length: 0,
-        reoccuring: true
-      }, {
-        day: new Date(2025, 4, 18),
-        length: 0,
-        reoccuring: true
-      }
-    ],
-    discord_image_index: 0
-  }
-}
-
 // For now all of the talents are hard-coded. 
 // I will add the ability to add a user when I make the website
 export default new commandBuilder().setName("talents").setDescription("Get information on a talent").setOptions([
   new optionBuilder().setName("talent_name").setDescription("Name of the talent you want info on!").setType(commandOptionTypes.STRING).setAutocomplete().setRequired().build()
 ]).setAutocompleteFunction(async (interaction) => {
   const focusedValue = interaction.options.getFocused();
+  // Update this so talents is cached and updated every 10 minutes;
   const talents = ["kokofee_"];
 
   const filtered = talents.filter(choice => choice.startsWith(focusedValue));
@@ -73,8 +21,17 @@ export default new commandBuilder().setName("talents").setDescription("Get infor
 
   if (!AVATAR) return interaction.followUp("Failed to get AvatarURL!\nPlease report this to kokovt_!");
   if (!TALENT_NAME) return interaction.followUp("Failed to get Talents name!\nPlease make sure you input one, or if you did report this to kokovt_!");
-  if (!TALENT_DATA[TALENT_NAME]) return interaction.followUp("Failed to find the talent in the database!");
-  const TALENTS_INFO = TALENT_DATA[TALENT_NAME];
+
+  const API_CALLBACK = await (await fetch(`http://localhost:3000/VFreeTalents/getTalent?talent=${TALENT_NAME}`)).text();
+
+  if (API_CALLBACK == "No talent specified!" || API_CALLBACK == "Client not initialized!") return interaction.followUp("There was an error with the API call!");
+  if (API_CALLBACK == "Talent isn't registered or doesn't exist!") return interaction.followUp("That talent isn't registered or doesn't exist!");
+
+  const TALENT_DATA: iTalentData = JSON.parse(API_CALLBACK);
+
+  if (!TALENT_DATA.talent) return interaction.followUp("Failed to find the talent in the database!");
+
+  const TALENTS_INFO = TALENT_DATA.talent;
 
   let talents_schedule_text = "This talent doesn't have anything scheduled!";
 
@@ -82,7 +39,7 @@ export default new commandBuilder().setName("talents").setDescription("Get infor
     talents_schedule_text = "";
     for (let i = 0; i < TALENTS_INFO.schedule.length; i++) {
 
-      talents_schedule_text += format_date(TALENTS_INFO.schedule[i].day, TALENTS_INFO.schedule[i].reoccuring, TALENTS_INFO.schedule[i].length);
+      talents_schedule_text += format_date(new Date(TALENTS_INFO.schedule[i].day), TALENTS_INFO.schedule[i].reoccuring, TALENTS_INFO.schedule[i].length);
     }
 
     talents_schedule_text += "-# All times are shown in MST";
@@ -136,4 +93,24 @@ function reoccuringFormat(date_value: Date, reoccuring: boolean) {
 function padNumber(number: number) {
   if (number >= 10) return number;
   return '0' + number;
+}
+
+interface iTalentData {
+  talent: {
+    streamer_name: string,
+    translation?: string,
+    header_text?: string,
+    description: string,
+    links?: Array<{
+      name: string,
+      link: string
+    }>,
+    model_images: Array<string>,
+    schedule?: Array<{
+      day: Date,
+      length: number,
+      reoccuring: boolean,
+    }>,
+    discord_image_index: number
+  }
 }

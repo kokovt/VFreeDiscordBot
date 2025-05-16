@@ -70,12 +70,13 @@ export class VFreeBot {
           await this.commands[i].run(this, interaction);
           return;
         } catch (err: any) { // For some reason you cant say the error is of type "Error"
-          console.error(err.message);
+          console.error(err);
           interaction.followUp({ flags: MessageFlags.Ephemeral, content: "Error running command!" });
+          return;
         }
       }
 
-      interaction.reply({ flags: MessageFlags.Ephemeral, content: "Coulnd't find command!" });
+      interaction.reply({ flags: MessageFlags.Ephemeral, content: "Couldn't find command!" });
     });
   }
 
